@@ -11,6 +11,10 @@ import UIKit
 class ToDoListViewController : UITableViewController {
     var itemArray = [Item]() //Array of type item
     
+    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
+    //User domain mask is user default folder and we will save our data here
+    //Creates a new path to the plist
+    
     let defaults = UserDefaults.standard
 
     override func viewDidLoad() {
@@ -18,22 +22,10 @@ class ToDoListViewController : UITableViewController {
         // Do any additional setup after loading the view, typically from a nib.
         //Load the data from the stored array
         //The stored array may not always exists
-        
-        let newItem = Item()
-        newItem.title = "Task 1"
-        itemArray.append(newItem)
-        
-        let newItem1 = Item()
-        newItem.title = "Task 2"
-        itemArray.append(newItem1)
-        
-        let newItem2 = Item()
-        newItem.title = "Task 3"
-        itemArray.append(newItem2)
 
-        if let items = defaults.array(forKey: "toDoListArray") as? [Item]{
-            itemArray = items
-        }
+        
+        loadItemsFromPlist()
+
     }
     
     //MARK: Tableview data source methods.
@@ -64,7 +56,7 @@ class ToDoListViewController : UITableViewController {
         
         newItem.done = !newItem.done
         
-        tableView.reloadData()
+        saveDataToPlist()
         
         tableView.deselectRow(at: indexPath, animated: true)
     }
@@ -86,8 +78,7 @@ class ToDoListViewController : UITableViewController {
             
             self.itemArray.append(newItem)
             
-            self.tableView.reloadData()
-            self.defaults.setValue(self.itemArray, forKey: "toDoListArray")
+            self.saveDataToPlist()
         }
         addAlert.addTextField { (alertTextField) in
             alertTextField.placeholder = "Add item"
@@ -97,6 +88,29 @@ class ToDoListViewController : UITableViewController {
         
         addAlert.addAction(alertAction)
         present(addAlert, animated: true, completion: nil)
+    }
+    
+    func saveDataToPlist(){
+        let encoder = PropertyListEncoder()
+        
+        do{
+            let data = try encoder.encode(self.itemArray)
+            try data.write(to: self.dataFilePath!)
+        }catch{
+            print("An exception occured.")
+        }
+        self.tableView.reloadData()
+    }
+    
+    func loadItemsFromPlist(){
+        if let data = try? Data(contentsOf: dataFilePath!){
+            let decoder = PropertyListDecoder()
+            do{
+            self.itemArray = try decoder.decode([Item].self, from: data)
+            }catch{
+                print("Exception occurred.")
+            }
+        }
     }
     
 }
